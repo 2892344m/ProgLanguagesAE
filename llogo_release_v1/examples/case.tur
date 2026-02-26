@@ -1,0 +1,26 @@
+let cols1 = red :: pink :: green :: [] in
+let cols2 = [] in
+let fun safeHead(cols: ColourList) =
+  case cols of {
+      [] -> blue
+    | x :: xs -> x
+  }
+in
+let fun explicitRandCol(cols: ColourList) =
+  case cols of {
+      [] -> ()
+    | x :: xs -> randCol(cols)
+  }
+in
+forward(100);
+right(90);
+setCol(safeHead(cols1));
+forward(100);
+setCol(safeHead(cols2));
+forward(100);
+right(90);
+explicitRandCol(cols1);
+forward(100)
+right(90);
+explicitRandCol(cols2);
+forward(100)

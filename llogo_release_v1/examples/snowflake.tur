@@ -1,0 +1,25 @@
+let rec snowflakeSide(lengthAndDepth : (Int * Int)): Unit =
+  let (length, depth) = lengthAndDepth in
+  if (depth == 0) {
+    forward(length)
+  } else {
+    snowflakeSide(((length / 3), (depth - 1)));
+    left(60);
+    snowflakeSide(((length / 3), (depth - 1)));
+    right(120);
+    snowflakeSide(((length / 3), (depth - 1)));
+    left(60);
+    snowflakeSide(((length / 3), (depth - 1)))
+  }
+in
+let fun snowflake(lengthAndDepth : (Int * Int)) =
+  let length = fst(lengthAndDepth) in
+  let depth = snd(lengthAndDepth) in
+  snowflakeSide((length, depth));
+  right(120);
+  snowflakeSide((length, depth));
+  right(120);
+  snowflakeSide((length, depth));
+  right(120)
+in
+snowflake((200, 3))

@@ -1,0 +1,9 @@
+let double = \x:Int. x + x in
+let fun multBy(intAndTimes: (Int * Int)) =
+  let (int, times) = intAndTimes in
+    (rec go(x: Int): Int.
+      (if (x <= 0) { 0 } else { int + (go(x - 1))} ))(times)
+in
+forward(multBy((10, 5)));
+right(90);
+forward(double(10))

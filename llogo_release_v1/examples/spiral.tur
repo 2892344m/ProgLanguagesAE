@@ -1,0 +1,19 @@
+let rec loop(len: Int): Unit =
+    if (len < 200) {
+        if (len < 100) {
+            setCol(red)
+        } else {
+            if (len < 150) {
+                setCol(green)
+            } else {
+                setCol(blue)
+            }
+        };
+        forward(len);
+        right(60);
+        loop(len + 10)
+    } else {
+        ()
+    }
+in
+loop(20)

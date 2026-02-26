@@ -1,0 +1,35 @@
+let fun setRandColour(x: Unit) =
+    let colList = red :: (green :: (blue :: (pink :: []))) in
+    randCol(colList)
+in
+let rec drawFractal(lengthAndDepth: (Int * Int)): Unit =
+    let (length, depth) = lengthAndDepth in
+    if (depth == 0) {
+        ()
+    } else {
+        setCol(red);
+        forward(length);
+        right(90);
+        drawFractal((length / 3, depth - 1));
+        setRandColour(());
+        forward(length);
+        right(90);
+        drawFractal((length / 3, depth - 1));
+        setRandColour(());
+        forward(length);
+        right(90);
+        drawFractal((length / 3, depth - 1));
+        setRandColour(());
+        forward(length);
+        right(90);
+        drawFractal(((length / 3), (depth - 1)))
+    }
+in
+penUp();
+left(90);
+forward(200);
+left(90);
+forward(200);
+right(180);
+penDown();
+drawFractal((300, 5))

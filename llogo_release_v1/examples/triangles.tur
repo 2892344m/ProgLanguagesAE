@@ -1,0 +1,20 @@
+let fun drawTriangle(length: Int) =
+  forward(length);
+  right(120);
+  forward(length);
+  right(120);
+  forward(length);
+  right(120)
+in
+let rec drawTriangles(lengthAndNumber: (Int * Int)): Unit =
+    let (length, number) = lengthAndNumber in
+    if (number <= 0) {
+        ()
+    } else {
+      let angle = 360 / number in
+      drawTriangle(length);
+      right(angle);
+      drawTriangles((length, number - 1))
+    }
+in
+drawTriangles((200, 80))

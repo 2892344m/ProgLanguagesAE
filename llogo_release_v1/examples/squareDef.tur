@@ -1,0 +1,18 @@
+let fun drawSquare(width: Int) =
+    setCol(red);
+    forward(width);
+    right(90);
+    setCol(green);
+    forward(width);
+    right(90);
+    setCol(blue);
+    forward(width);
+    right(90);
+    setCol(pink);
+    forward(width);
+    right(90)
+in
+drawSquare(200);
+drawSquare(100);
+drawSquare(50);
+drawSquare(25)

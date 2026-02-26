@@ -1,0 +1,12 @@
+setCol(red);
+forward(120);
+right(90);
+setCol(green);
+forward(120);
+right(90);
+setCol(blue);
+forward(120);
+right(90);
+setCol(pink);
+forward(120);
+right(90)
