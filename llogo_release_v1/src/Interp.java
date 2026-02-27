@@ -1,8 +1,7 @@
+import ast.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
-
-import ast.*;
 
 public class Interp {
     public Interp() {
@@ -175,10 +174,12 @@ public class Interp {
                 empty.getInstructions().addAll(scrut.getInstructions());
                 return empty;
             } else {
-                ECons cons = (ECons) l.toExpr();
-                Expr head = cons.getHead();
-                ELambda lmb = new ELambda(e.getHeadBinder(), , head);
-                
+                ECons oldCons = (ECons) l.toExpr();
+                ECons newCons = (ECons) e.getConsCase();
+                Expr substHead = Subst.subst(oldCons.getHead(), newCons.getHead(), e.getHeadBinder());
+                Expr substTail = Subst.subst(oldCons.getTail(), newCons.getTail(), e.getTailBinder());
+                ECons substCons = new ECons(substHead, substTail);
+                return interpExpr(substCons);
             }
         } else if (expr instanceof ENil) {
             return new InterpResult(null, null);
@@ -190,28 +191,21 @@ public class Interp {
             InterpResult res = null;
 
             switch (e.getOp()) {
-                case ADD:
-                    res = new InterpResult(new VInt(unwrapInt(v1.getValue()) + unwrapInt(v2.getValue())), new ArrayList<>());
-                case AND:
-                    res = new InterpResult(new VBool(unwrapBool(v1.getValue()) && unwrapBool(v2.getValue())), new ArrayList<>());
-                case DIV:
-                    res = new InterpResult(new VInt(unwrapInt(v1.getValue()) / unwrapInt(v2.getValue())), new ArrayList<>());
-                case EQ:
-                    res = new InterpResult(new VBool(unwrapInt(v1.getValue()) == unwrapInt(v2.getValue())), new ArrayList<>());
-                case GT:
-                    res = new InterpResult(new VBool(unwrapInt(v1.getValue()) > unwrapInt(v2.getValue())), new ArrayList<>());
-                case GTE:
-                    res = new InterpResult(new VBool(unwrapInt(v1.getValue()) >= unwrapInt(v2.getValue())), new ArrayList<>());
-                case LT:
-                    res = new InterpResult(new VBool(unwrapInt(v1.getValue()) < unwrapInt(v2.getValue())), new ArrayList<>());
-                case LTE:
-                    res = new InterpResult(new VBool(unwrapInt(v1.getValue()) <= unwrapInt(v2.getValue())), new ArrayList<>());
-                case MUL:
-                    res = new InterpResult(new VInt(unwrapInt(v1.getValue()) * unwrapInt(v2.getValue())), new ArrayList<>());
-                case OR:
-                    res = new InterpResult(new VBool(unwrapBool(v1.getValue()) || unwrapBool(v2.getValue())), new ArrayList<>());
-                case SUB:
-                    res = new InterpResult(new VInt(unwrapInt(v1.getValue()) - unwrapInt(v2.getValue())), new ArrayList<>());
+                case ADD -> res = new InterpResult(new VInt(unwrapInt(v1.getValue()) + unwrapInt(v2.getValue())), new ArrayList<>());
+                case AND -> res = new InterpResult(new VBool(unwrapBool(v1.getValue()) && unwrapBool(v2.getValue())), new ArrayList<>());
+                case DIV -> res = new InterpResult(new VInt(unwrapInt(v1.getValue()) / unwrapInt(v2.getValue())), new ArrayList<>());
+                case EQ -> res = new InterpResult(new VBool(unwrapInt(v1.getValue()) == unwrapInt(v2.getValue())), new ArrayList<>());
+                case GT -> res = new InterpResult(new VBool(unwrapInt(v1.getValue()) > unwrapInt(v2.getValue())), new ArrayList<>());
+                case GTE -> res = new InterpResult(new VBool(unwrapInt(v1.getValue()) >= unwrapInt(v2.getValue())), new ArrayList<>());
+                case LT -> res = new InterpResult(new VBool(unwrapInt(v1.getValue()) < unwrapInt(v2.getValue())), new ArrayList<>());
+                case LTE -> res = new InterpResult(new VBool(unwrapInt(v1.getValue()) <= unwrapInt(v2.getValue())), new ArrayList<>());
+                case MUL -> res = new InterpResult(new VInt(unwrapInt(v1.getValue()) * unwrapInt(v2.getValue())), new ArrayList<>());
+                case OR -> res = new InterpResult(new VBool(unwrapBool(v1.getValue()) || unwrapBool(v2.getValue())), new ArrayList<>());
+                case SUB -> res = new InterpResult(new VInt(unwrapInt(v1.getValue()) - unwrapInt(v2.getValue())), new ArrayList<>());
+            }
+
+            if (res == null) {
+                throw new TypeErrorException("Type Error: Unhandled operator: " + e.getOp().toString());
             }
 
             res.getInstructions().addAll(v1.getInstructions());
@@ -225,7 +219,32 @@ public class Interp {
             l.getContents().addFirst(m.getValue());
             n.getInstructions().addAll(m.getInstructions());
             return n;
+        } else if (expr instanceof EApp) {
+            EApp e = (EApp) expr;
+            InterpResult ir = interpExpr(e.getFunction());
+            Value v1 = ir.getValue();
+            if (v1 instanceof VLambda) {
+                VLambda l =  (VLambda) v1;
+                InterpResult arg = interpExpr(e.getArgument());
+                Expr subst = Subst.subst(l.getBody(), arg.getValue().toExpr(), l.getParameter());
+                InterpResult res = interpExpr(subst);
+                res.getInstructions().addAll(arg.getInstructions());
+                res.getInstructions().addAll(ir.getInstructions());
+                return res;
+            } else if (v1 instanceof VRec) {
+                VRec rec = (VRec) v1;
+                InterpResult arg = interpExpr(e.getArgument());
+                Expr subst = Subst.subst(rec.getBody(), arg.getValue().toExpr(), rec.getArgName());
+                Expr substRec = Subst.subst(subst, rec.toExpr(), rec.getFunName());
+                InterpResult res = interpExpr(substRec);
+                res.getInstructions().addAll(arg.getInstructions());
+                res.getInstructions().addAll(ir.getInstructions());
+                return res;
+            } else {
+                throw new TypeErrorException("Type Error: Unhandled expression in EApp (interpExpr): " + e.toString());
+            }
         }
+        return null;
     }
 
 
