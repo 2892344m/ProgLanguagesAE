@@ -23,7 +23,6 @@ public class Interp {
             throw new TypeErrorException("Type Error: " + v.toString() + "not boolean value in (unwrapBool)");
         }
     }
-
     public InterpResult interpExpr(Expr expr) {
         if (expr instanceof EInt) {
             EInt e = (EInt) expr;
@@ -41,7 +40,7 @@ public class Interp {
             ECond e = (ECond) expr;
             InterpResult predicate = interpExpr(e.getTest());
             VBool res = (VBool) predicate.getValue();
-            if (res.getValue()) {
+            if (unwrapBool(res)) {
                 InterpResult thenBranch = interpExpr(e.getThenBranch());
                 thenBranch.getInstructions().addAll(predicate.getInstructions());
                 return thenBranch;
@@ -182,7 +181,7 @@ public class Interp {
                 return interpExpr(substCons);
             }
         } else if (expr instanceof ENil) {
-            return new InterpResult(null, null);
+            return new InterpResult(new VList(new ArrayList<>()), new ArrayList<>());
 
         } else if (expr instanceof EBinOp) {
             EBinOp e = (EBinOp) expr;
@@ -243,8 +242,20 @@ public class Interp {
             } else {
                 throw new TypeErrorException("Type Error: Unhandled expression in EApp (interpExpr): " + e.toString());
             }
+        } else if (expr instanceof ELet) {
+            System.out.println("\n" + expr);
+            ELet e = (ELet) expr;
+            InterpResult M = interpExpr(e.getSubject());
+            Expr cont = Subst.subst(e.getContinuation(), M.getValue().toExpr(), e.getBinder());
+            InterpResult N = interpExpr(cont);
+            N.getInstructions().addAll(M.getInstructions());
+            return N;
+        } else if (expr instanceof EColour) {
+            EColour e = (EColour) expr;
+            return new InterpResult(new VColour(e.getColour()), new ArrayList<>());
+        } else {
+            throw new TypeErrorException("Type Error: Unhandled expression in (interpExpr): " + expr.getClass() + "\nInstructions: "+ expr.toString() );
         }
-        return null;
     }
 
 

@@ -136,21 +136,30 @@ public class Subst {
             if (e.getParameter().equals(var)) {
                 return e;
             } else {
-                return new ELambda(NameSource.genFreshName(), e.getParameterType(), subst(e.getBody(), replacement, var));
+                String freshVar = NameSource.genFreshName();
+                Expr newBody = swap(e.getBody(), e.getParameter(), freshVar);
+                return new ELambda(freshVar, e.getParameterType(), subst(newBody, replacement, var));
             }
         } else if (expr instanceof ERec) {
             ERec e = (ERec) expr;
             if (e.getArgName().equals(var) || e.getFunName().equals(var)) {
                 return e;
             } else {
-                return new ERec(NameSource.genFreshName(), NameSource.genFreshName(), e.getArgType(), e.getResultType(), subst(e.getBody(), replacement, var));
+                String freshArgName = NameSource.genFreshName();
+                Expr freshBody = swap(e.getBody(), e.getArgName(), freshArgName);
+                String freshFunName = NameSource.genFreshName();
+                freshBody = swap(freshBody, e.getFunName(), freshFunName);
+                return new ERec(freshFunName, freshArgName, e.getArgType(), e.getResultType(), subst(freshBody, replacement, var));
             }
         } else if (expr instanceof ELet) {
             ELet e = (ELet) expr;
             if (e.getBinder().equals(var)) {
                 return new ELet(e.getBinder(), subst(e.getSubject(), replacement, var), e.getContinuation());
             } else {
-                return new ELet(NameSource.genFreshName(), subst(e.getSubject(), replacement, var), subst(e.getContinuation(), replacement, var));
+                String freshBinder = NameSource.genFreshName();
+                Expr freshSubject = swap(e.getSubject(), e.getBinder(), freshBinder);
+                Expr freshContinuation = swap(e.getContinuation(), e.getBinder(), freshBinder);
+                return new ELet(freshBinder, subst(freshSubject, replacement, var), subst(freshContinuation, replacement, var));
             }
         } else if (expr instanceof ECase) {
             ECase e = (ECase) expr;
@@ -163,39 +172,63 @@ public class Subst {
                     e.getConsCase()
                 );
             } else {
+                String freshHead = NameSource.genFreshName();
+                Expr freshScrut = swap(e.getScrutinee(), e.getHeadBinder(), freshHead);
+                Expr freshEmpty = swap(e.getEmptyCase(), e.getHeadBinder(), freshHead);
+                Expr freshCons = swap(e.getConsCase(), e.getHeadBinder(), freshHead);
+
+                String freshTail = NameSource.genFreshName();
+                freshScrut = swap(freshScrut, e.getTailBinder(), freshTail);
+                freshEmpty = swap(freshEmpty, e.getTailBinder(), freshTail);
+                freshCons = swap(freshCons, e.getTailBinder(), freshTail);
+
                 return new ECase(
-                    subst(e.getScrutinee(), replacement, var),
-                    subst(e.getEmptyCase(), replacement, var),
-                    NameSource.genFreshName(),
-                    NameSource.genFreshName(),
-                    subst(e.getConsCase(), replacement, var)
+                    subst(freshScrut, replacement, var),
+                    subst(freshEmpty, replacement, var),
+                    freshHead,
+                    freshTail,
+                    subst(freshCons, replacement, var)
                 );
             }
         } else if (expr instanceof ELetFun) {
             ELetFun e = (ELetFun) expr;
             if (e.getParam().equals(var)) {
+                String freshFun = NameSource.genFreshName();
+                Expr freshBody = swap(e.getBody(), e.getFunctionName(), freshFun);
+
                 return new ELetFun(
-                    NameSource.genFreshName(),
+                    freshFun,
                     e.getParam(),
                     e.getParamTy(),
                     e.getSubject(),
-                    subst(e.getBody(), replacement, var)
+                    subst(freshBody, replacement, var)
                 );
             } else if (e.getFunctionName().equals(var)) {
+                String freshParam = NameSource.genFreshName();
+                Expr freshSubject = swap(e.getSubject(), e.getParam(), freshParam);
+
                 return new ELetFun(
                     e.getFunctionName(),
-                    NameSource.genFreshName(),
+                    freshParam,
                     e.getParamTy(),
-                    subst(e.getSubject(), replacement, var),
+                    subst(freshSubject, replacement, var),
                     e.getBody()
                 );
             } else {
+                String freshFun = NameSource.genFreshName();
+                Expr freshBody = swap(e.getBody(), e.getFunctionName(), freshFun);
+                Expr freshSubject = swap(e.getSubject(), e.getFunctionName(), freshFun);
+
+                String freshParam = NameSource.genFreshName();
+                freshBody = swap(freshBody, e.getParam(), freshParam);
+                freshSubject = swap(freshSubject, e.getParam(), freshParam);
+
                 return new ELetFun(
-                    NameSource.genFreshName(),
-                    NameSource.genFreshName(),
+                    freshFun,
+                    freshParam,
                     e.getParamTy(),
-                    subst(e.getSubject(), replacement, var),
-                    subst(e.getBody(), replacement, var)
+                    subst(freshBody, replacement, var),
+                    subst(freshSubject, replacement, var)
                 );
             }
         } else if (expr instanceof ELetRec) {
@@ -203,22 +236,33 @@ public class Subst {
             if (e.getFunctionName().equals(var)) {
                 return e;
             } else if (e.getParam().equals(var)) {
+                String freshFun = NameSource.genFreshName();
+                Expr freshBody = swap(e.getBody(), e.getFunctionName(), freshFun);
+
                 return new ELetRec(
-                    NameSource.genFreshName(),
+                    freshFun,
                     e.getParam(),
                     e.getParamTy(),
                     e.getReturnTy(),
                     e.getSubject(),
-                    subst(e.getBody(), replacement, var)
+                    subst(freshBody, replacement, var)
                 );
             } else {
+                String freshFun = NameSource.genFreshName();
+                Expr freshBody = swap(e.getBody(), e.getFunctionName(), freshFun);
+                Expr freshSubject = swap(e.getSubject(), e.getFunctionName(), freshFun);
+
+                String freshParam = NameSource.genFreshName();
+                freshBody = swap(freshBody, e.getParam(), freshParam);
+                freshSubject = swap(freshSubject, e.getParam(), freshParam);
+
                 return new ELetRec(
-                    NameSource.genFreshName(),
-                    NameSource.genFreshName(),
+                    freshFun,
+                    freshParam,
                     e.getParamTy(),
                     e.getReturnTy(),
-                    subst(e.getSubject(), replacement, var),
-                    subst(e.getBody(), replacement, var)
+                    subst(freshSubject, replacement, var),
+                    subst(freshBody, replacement, var)
                 );
             }
         } else if (expr instanceof ELetPair) {
@@ -231,15 +275,79 @@ public class Subst {
                     e.getBody()
                 );
             } else {
+                String freshParam1 = NameSource.genFreshName();
+                Expr freshSubject = swap(e.getSubject(), e.getParam1(), freshParam1);
+                Expr freshBody = swap(e.getBody(), e.getParam1(), freshParam1);
+
+                String freshParam2 = NameSource.genFreshName();
+                freshSubject = swap(freshSubject, e.getParam2(), freshParam2);
+                freshBody = swap(freshBody, e.getParam2(), freshParam2);
+
                 return new ELetPair(
-                    NameSource.genFreshName(),
-                    NameSource.genFreshName(),
-                    subst(e.getSubject(), replacement, var),
-                    subst(e.getBody(), replacement, var)
+                    freshParam1,
+                    freshParam2,
+                    subst(freshSubject, replacement, var),
+                    subst(freshBody, replacement, var)
                 );
             }
+        } else if (expr instanceof ERandCol) {
+            ERandCol e = (ERandCol) expr;
+            return new ERandCol(subst(e.getColourList(), replacement, var));
+        } else if (expr instanceof ESequence) {
+            ESequence e = (ESequence) expr;
+            return new ESequence(
+                subst(e.getE1(), replacement, var),
+                subst(e.getE2(), replacement, var)
+            );
+        } else if (expr instanceof EApp) {
+            EApp e = (EApp) expr;
+            return new EApp(
+                subst(e.getFunction(), replacement, var),
+                subst(e.getArgument(), replacement, var));
+        } else if (expr instanceof EPair) {
+            EPair e = (EPair) expr;
+            return new EPair(
+                subst(e.getFirst(), replacement, var),
+                subst(e.getSecond(), replacement, var)
+            );
+        } else if (expr instanceof ECond) {
+            ECond e = (ECond) expr;
+            return new ECond(
+                subst(e.getTest(), replacement, var),
+                subst(e.getThenBranch(), replacement, var),
+                subst(e.getElseBranch(), replacement, var)
+            );
+        } else if (expr instanceof EBinOp) {
+            EBinOp e = (EBinOp) expr;
+            return new EBinOp(
+                subst(e.getE1(), replacement, var),
+                e.getOp(),
+                subst(e.getE2(), replacement, var)
+            );
+        } else if (expr instanceof ESetCol) {
+            ESetCol e = (ESetCol) expr;
+            return new ESetCol(subst(e.getColour(), replacement, var));
+        } else if (expr instanceof EForward) {
+            EForward e = (EForward) expr;
+            return new EForward(subst(e.getAmount(), replacement, var));
+        } else if (expr instanceof EBackward) {
+            EBackward e = (EBackward) expr;
+            return new EBackward(subst(e.getAmount(), replacement, var));
+        } else if (expr instanceof ETurnRight) {
+            ETurnRight e = (ETurnRight) expr;
+            return new ETurnRight(subst(e.getAmount(), replacement, var));
+        } else if (expr instanceof ETurnLeft) {
+            ETurnLeft e = (ETurnLeft) expr;
+            return new ETurnLeft(subst(e.getAmount(), replacement, var));
+        } else if (expr instanceof EFst) {
+            EFst e = (EFst) expr;
+            return new EFst(subst(e.getPair(), replacement, var));
+        } else if (expr instanceof ESnd) {
+            ESnd e = (ESnd) expr;
+            return new ESnd(subst(e.getPair(), replacement, var));
         } else {
-            throw new RuntimeException("Invalid expression in Subst.java (subst): " + expr.toString());
+            System.out.println(expr.getClass());
+            return expr;
         }
     }
 

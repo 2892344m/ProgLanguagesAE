@@ -28,7 +28,37 @@ public class Render {
     private class RenderWindow extends JPanel {
 
         private void renderInstructions(Graphics g) {
-            throw new RuntimeException("renderInstructions (Render.java): fill me in");
+            for (Instruction i : instructions) {
+                if (i instanceof ISetPen) {
+                    ISetPen penSet = (ISetPen) i;
+                    penDown = penSet.penIsDown();
+                } else if (i instanceof IChangeColour) {
+                    IChangeColour colour = (IChangeColour) i;
+                    switch (colour.getColour()) {
+                        case BLACK -> g.setColor(Color.BLACK);
+                        case RED -> g.setColor(Color.RED);
+                        case BLUE -> g.setColor(Color.BLUE);
+                        case GREEN -> g.setColor(Color.GREEN);
+                        case PINK -> g.setColor(Color.PINK);
+                    }
+                } else if (i instanceof ITurn) {
+                    ITurn turnAngle = (ITurn) i;
+                    angle = (angle + turnAngle.getAmount()) % 360;
+                } else if (i instanceof IMove) {
+                    IMove move = (IMove) i;
+                    double radians = Math.toRadians(angle);
+                    if (penDown) {
+                        int dx = (int) (x + (move.getAmount() * Math.sin(radians)));
+                        dx = Math.min(dx, WINDOW_WIDTH);
+                        int dy = (int) (y + (move.getAmount() * Math.cos(radians)));
+                        dy = Math.min(dy, WINDOW_HEIGHT);
+                        g.drawLine(x, y, dx, dy);
+                        x = dx;
+                        y = dy;
+                    }
+                }
+            }
+            drawTurtle(g);
         }
 
         private void drawTurtle(Graphics g) {

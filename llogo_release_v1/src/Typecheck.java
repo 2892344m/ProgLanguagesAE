@@ -28,14 +28,12 @@ public class Typecheck {
         } else if (expr instanceof ELet) {
             ELet e = (ELet) expr;
             tyEnv = tyEnv.extend(e.getBinder(), typecheckExpr(tyEnv, e.getSubject()));
-            return typecheckExpr(tyEnv, e.getSubject());
+            return typecheckExpr(tyEnv, e.getContinuation());
         } else if (expr instanceof ELetFun) {
             ELetFun e = (ELetFun) expr;
             tyEnv = tyEnv.extend(e.getParam(), e.getParamTy());
-            String fun = e.getFunctionName();
-            tyEnv = tyEnv.extend(fun, typecheckExpr(tyEnv, e.getSubject()));
-            TyPair t = (TyPair) tyEnv.lookup(e.getFunctionName());
-            checkType(e.getParamTy(), t.getTy2());
+            Type M = typecheckExpr(tyEnv, e.getSubject());
+            tyEnv = tyEnv.extend(e.getFunctionName(), M);
             return typecheckExpr(tyEnv, e.getBody());
         } else if (expr instanceof ELetRec) {
             ELetRec e = (ELetRec) expr;
@@ -53,10 +51,8 @@ public class Typecheck {
             return tyEnv.lookup(e.getVar());
         } else if (expr instanceof EApp) {
             EApp e = (EApp) expr;
-            Type argTy = typecheckExpr(tyEnv, e.getArgument());
-            TyPair funTy = (TyPair) typecheckExpr(tyEnv, e.getFunction());
-            checkType(argTy, funTy.getTy1());
-            return funTy.getTy2();
+            typecheckExpr(tyEnv, e.getArgument());
+            return typecheckExpr(tyEnv, e.getFunction());
         } else if (expr instanceof ECond) {
             ECond e = (ECond) expr;
             checkType(TyBool.type(), typecheckExpr(tyEnv, e.getTest()));
@@ -126,17 +122,45 @@ public class Typecheck {
             return TyUnit.type();
         } else if (expr instanceof ERandCol) {
             ERandCol e = (ERandCol) expr;
-            checkType(TyColourList.type(), typecheckExpr(tyEnv, e.getColourList()));            
+            checkType(TyColourList.type(), typecheckExpr(tyEnv, e.getColourList()));   
+            return TyUnit.type();         
         } else if (expr instanceof ELetPair) {
             ELetPair e = (ELetPair) expr;
             TyPair p = (TyPair)  typecheckExpr(tyEnv, e.getSubject());
-            Type A1 = tyEnv.lookup(e.getParam1());
-            Type A2 = tyEnv.lookup(e.getParam2());
-            checkType(A1, p.getTy1());
-            checkType(A2, p.getTy2());
+            tyEnv = tyEnv.extend(e.getParam1(), p.getTy1());
+            tyEnv = tyEnv.extend(e.getParam2(), p.getTy2());
             return typecheckExpr(tyEnv, e.getBody());
+        } else if (expr instanceof EBinOp) {
+            EBinOp e = (EBinOp) expr;
+            Type t1 = typecheckExpr(tyEnv, e.getE1());
+            Type t2 = typecheckExpr(tyEnv, e.getE2());
+            checkType(t1, t2);
+            switch (e.getOp()) {
+                case ADD:
+                    return TyInt.type();
+                case AND:
+                    return TyBool.type();
+                case DIV:
+                    return TyInt.type();
+                case EQ:
+                    return TyBool.type();
+                case GT:
+                    return TyBool.type();
+                case GTE:
+                    return TyBool.type();
+                case LT:
+                    return TyBool.type();
+                case LTE:
+                    return TyBool.type();
+                case MUL:
+                    return TyInt.type();
+                case OR:
+                    return TyBool.type();
+                case SUB:
+                    return TyInt.type();
+            }
         } else {
-            throw new TypeErrorException("Type Error: Unhandled Expression in (typecheckExpr): " + expr.toString());
+            throw new TypeErrorException("Type Error: Unhandled Expression in (typecheckExpr): " + expr.getClass() + " \nInformation: " + expr.toString());
         }
         return null;
     }
