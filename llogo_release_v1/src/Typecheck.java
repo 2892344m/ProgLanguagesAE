@@ -33,13 +33,12 @@ public class Typecheck {
             ELetFun e = (ELetFun) expr;
             tyEnv = tyEnv.extend(e.getParam(), e.getParamTy());
             Type M = typecheckExpr(tyEnv, e.getSubject());
-            tyEnv = tyEnv.extend(e.getFunctionName(), M);
+            tyEnv = tyEnv.extend(e.getFunctionName(), new TyFun(e.getParamTy(), M));
             return typecheckExpr(tyEnv, e.getBody());
         } else if (expr instanceof ELetRec) {
             ELetRec e = (ELetRec) expr;
             tyEnv = tyEnv.extend(e.getParam(), e.getParamTy());
-            String funName = e.getFunctionName();
-            tyEnv = tyEnv.extend(funName, e.getReturnTy());
+            tyEnv = tyEnv.extend(e.getFunctionName(), e.getReturnTy());
             typecheckExpr(tyEnv, e.getSubject());
             return typecheckExpr(tyEnv, e.getBody());
         } else if (expr instanceof EUnit) {
@@ -74,10 +73,6 @@ public class Typecheck {
             Type L = typecheckExpr(tyEnv, e.getScrutinee());
             checkType(TyColourList.type(), L);
             Type M = typecheckExpr(tyEnv, e.getEmptyCase());
-            Type X = tyEnv.lookup(e.getHeadBinder());
-            checkType(TyColour.type(), X);
-            Type Y = tyEnv.lookup(e.getTailBinder());
-            checkType(TyColourList.type(), Y);
             Type N = typecheckExpr(tyEnv, e.getConsCase());
             checkType(M, N);
             return M;
