@@ -346,7 +346,6 @@ public class Subst {
             ESnd e = (ESnd) expr;
             return new ESnd(subst(e.getPair(), replacement, var));
         } else {
-            System.out.println(expr.getClass());
             return expr;
         }
     }

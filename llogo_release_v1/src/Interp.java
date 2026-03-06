@@ -243,7 +243,6 @@ public class Interp {
                 throw new TypeErrorException("Type Error: Unhandled expression in EApp (interpExpr): " + e.toString());
             }
         } else if (expr instanceof ELet) {
-            System.out.println("\n" + expr);
             ELet e = (ELet) expr;
             InterpResult M = interpExpr(e.getSubject());
             Expr cont = Subst.subst(e.getContinuation(), M.getValue().toExpr(), e.getBinder());

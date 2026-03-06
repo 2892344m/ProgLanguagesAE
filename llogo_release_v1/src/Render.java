@@ -1,11 +1,9 @@
-import java.util.List;
-import javax.swing.*;
 import java.awt.*;
 import java.awt.geom.AffineTransform;
-import javax.imageio.ImageIO;
 import java.io.IOException;
-
-import ast.*;
+import java.util.List;
+import javax.imageio.ImageIO;
+import javax.swing.*;
 
 public class Render {
     private static final int WINDOW_WIDTH = 1024;
@@ -28,6 +26,8 @@ public class Render {
     private class RenderWindow extends JPanel {
 
         private void renderInstructions(Graphics g) {
+            System.out.println(x);
+            System.out.println(y);
             for (Instruction i : instructions) {
                 if (i instanceof ISetPen) {
                     ISetPen penSet = (ISetPen) i;
@@ -43,15 +43,15 @@ public class Render {
                     }
                 } else if (i instanceof ITurn) {
                     ITurn turnAngle = (ITurn) i;
-                    angle = (angle + turnAngle.getAmount()) % 360;
+                    angle += turnAngle.getAmount();
                 } else if (i instanceof IMove) {
                     IMove move = (IMove) i;
                     double radians = Math.toRadians(angle);
                     if (penDown) {
                         int dx = (int) (x + (move.getAmount() * Math.sin(radians)));
-                        dx = Math.min(dx, WINDOW_WIDTH);
-                        int dy = (int) (y + (move.getAmount() * Math.cos(radians)));
-                        dy = Math.min(dy, WINDOW_HEIGHT);
+                        dx = Math.clamp(dx, 0, WINDOW_WIDTH);
+                        int dy = (int) (y - (move.getAmount() * Math.cos(radians)));
+                        dy = Math.clamp(dy, 0, WINDOW_HEIGHT);
                         g.drawLine(x, y, dx, dy);
                         x = dx;
                         y = dy;

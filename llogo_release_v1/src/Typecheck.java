@@ -33,7 +33,7 @@ public class Typecheck {
             ELetFun e = (ELetFun) expr;
             tyEnv = tyEnv.extend(e.getParam(), e.getParamTy());
             Type M = typecheckExpr(tyEnv, e.getSubject());
-            tyEnv = tyEnv.extend(e.getFunctionName(), new TyFun(e.getParamTy(), M));
+            tyEnv = tyEnv.extend(e.getFunctionName(), M);
             return typecheckExpr(tyEnv, e.getBody());
         } else if (expr instanceof ELetRec) {
             ELetRec e = (ELetRec) expr;

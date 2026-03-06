@@ -20,10 +20,9 @@ public class Desugar {
         } else if (expr instanceof ELetPair) {
             ELetPair e = (ELetPair) expr;
             String funName = NameSource.genFreshName();
-            Expr cont = Subst.swap(desugarExpr(e.getBody()), e.getParam1(), funName);
-            cont = Subst.swap(cont, e.getParam2(), funName);
-
-            return new ELet(funName, desugarExpr(e.getSubject()), cont);
+            Expr body = Subst.subst(e.getBody(), new EFst(e.getSubject()), e.getParam1());
+            body = Subst.subst(body, new ESnd(e.getSubject()), e.getParam2());
+            return new ELet(funName, desugarExpr(e.getSubject()), body);
         } else if (expr instanceof EApp) {
             EApp e = (EApp) expr;
             return new EApp(desugarExpr(e.getFunction()), desugarExpr(e.getArgument()));
