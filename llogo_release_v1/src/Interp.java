@@ -42,12 +42,12 @@ public class Interp {
             VBool res = (VBool) predicate.getValue();
             if (unwrapBool(res)) {
                 InterpResult thenBranch = interpExpr(e.getThenBranch());
-                thenBranch.getInstructions().addAll(predicate.getInstructions());
-                return thenBranch;
+                predicate.getInstructions().addAll(thenBranch.getInstructions());
+                return new InterpResult(thenBranch.getValue(), predicate.getInstructions());
             } else {
                 InterpResult elseBranch = interpExpr(e.getElseBranch());
-                elseBranch.getInstructions().addAll(predicate.getInstructions());
-                return elseBranch;
+                predicate.getInstructions().addAll(elseBranch.getInstructions());
+                return new InterpResult(elseBranch.getValue(), predicate.getInstructions());
             }
 
         } else if (expr instanceof EFst) {
@@ -173,12 +173,23 @@ public class Interp {
                 empty.getInstructions().addAll(scrut.getInstructions());
                 return empty;
             } else {
+                Expr consCase = e.getConsCase();
                 ECons oldCons = (ECons) l.toExpr();
-                ECons newCons = (ECons) e.getConsCase();
-                Expr substHead = Subst.subst(oldCons.getHead(), newCons.getHead(), e.getHeadBinder());
-                Expr substTail = Subst.subst(oldCons.getTail(), newCons.getTail(), e.getTailBinder());
-                ECons substCons = new ECons(substHead, substTail);
-                return interpExpr(substCons);
+                if (consCase instanceof ECons) {
+                    ECons newCons = (ECons) consCase;
+                    Expr substHead = Subst.subst(oldCons.getHead(), newCons.getHead(), e.getHeadBinder());
+                    Expr substTail = Subst.subst(oldCons.getTail(), newCons.getTail(), e.getTailBinder());
+                    ECons substCons = new ECons(substHead, substTail);
+                    return interpExpr(substCons);
+                } else if (consCase instanceof EVar) {
+                    EVar v = (EVar) consCase;
+                    if (v.getVar().equals(e.getHeadBinder())) {
+                        return interpExpr(oldCons.getHead());
+                    } else if (v.getVar().equals(e.getTailBinder())) {
+                        return interpExpr(oldCons.getTail());
+                    }
+                }
+                return interpExpr(oldCons);
             }
         } else if (expr instanceof ENil) {
             return new InterpResult(new VList(new ArrayList<>()), new ArrayList<>());

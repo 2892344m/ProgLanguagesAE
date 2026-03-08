@@ -21,10 +21,10 @@ public class Typecheck {
         } else if (expr instanceof ERec) {
             ERec e = (ERec) expr;
             tyEnv = tyEnv.extend(e.getArgName(), e.getArgType());
-            tyEnv = tyEnv.extend(e.getFunName(), e.getResultType());
+            tyEnv = tyEnv.extend(e.getFunName(), new TyFun(e.getArgType(), e.getResultType()));
             Type B = typecheckExpr(tyEnv, e.getBody());
             checkType(e.getResultType(), B);
-            return new TyPair(e.getArgType(), B);
+            return new TyFun(e.getArgType(), B);
         } else if (expr instanceof ELet) {
             ELet e = (ELet) expr;
             tyEnv = tyEnv.extend(e.getBinder(), typecheckExpr(tyEnv, e.getSubject()));
@@ -33,12 +33,14 @@ public class Typecheck {
             ELetFun e = (ELetFun) expr;
             tyEnv = tyEnv.extend(e.getParam(), e.getParamTy());
             Type M = typecheckExpr(tyEnv, e.getSubject());
-            tyEnv = tyEnv.extend(e.getFunctionName(), M);
-            return typecheckExpr(tyEnv, e.getBody());
+            tyEnv = tyEnv.extend(e.getFunctionName(), new TyFun(e.getParamTy(), M));
+            Type N = typecheckExpr(tyEnv, e.getBody());
+            tyEnv = tyEnv.extend(e.getFunctionName(), N);
+            return N;
         } else if (expr instanceof ELetRec) {
             ELetRec e = (ELetRec) expr;
             tyEnv = tyEnv.extend(e.getParam(), e.getParamTy());
-            tyEnv = tyEnv.extend(e.getFunctionName(), e.getReturnTy());
+            tyEnv = tyEnv.extend(e.getFunctionName(), new TyFun(e.getParamTy(), e.getReturnTy()));
             typecheckExpr(tyEnv, e.getSubject());
             return typecheckExpr(tyEnv, e.getBody());
         } else if (expr instanceof EUnit) {
@@ -50,8 +52,10 @@ public class Typecheck {
             return tyEnv.lookup(e.getVar());
         } else if (expr instanceof EApp) {
             EApp e = (EApp) expr;
-            typecheckExpr(tyEnv, e.getArgument());
-            return typecheckExpr(tyEnv, e.getFunction());
+            Type N = typecheckExpr(tyEnv, e.getArgument());
+            TyFun t = (TyFun) typecheckExpr(tyEnv, e.getFunction());
+            checkType(N, t.getTy1());
+            return t.getTy2();
         } else if (expr instanceof ECond) {
             ECond e = (ECond) expr;
             checkType(TyBool.type(), typecheckExpr(tyEnv, e.getTest()));
@@ -70,6 +74,8 @@ public class Typecheck {
             return TyColourList.type();
         } else if (expr instanceof ECase) {
             ECase e = (ECase) expr;
+            tyEnv = tyEnv.extend(e.getHeadBinder(), TyColour.type());
+            tyEnv = tyEnv.extend(e.getTailBinder(), TyColourList.type());
             Type L = typecheckExpr(tyEnv, e.getScrutinee());
             checkType(TyColourList.type(), L);
             Type M = typecheckExpr(tyEnv, e.getEmptyCase());
@@ -121,7 +127,7 @@ public class Typecheck {
             return TyUnit.type();         
         } else if (expr instanceof ELetPair) {
             ELetPair e = (ELetPair) expr;
-            TyPair p = (TyPair)  typecheckExpr(tyEnv, e.getSubject());
+            TyPair p = (TyPair) typecheckExpr(tyEnv, e.getSubject());
             tyEnv = tyEnv.extend(e.getParam1(), p.getTy1());
             tyEnv = tyEnv.extend(e.getParam2(), p.getTy2());
             return typecheckExpr(tyEnv, e.getBody());

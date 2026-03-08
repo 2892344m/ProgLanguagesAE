@@ -345,6 +345,9 @@ public class Subst {
         } else if (expr instanceof ESnd) {
             ESnd e = (ESnd) expr;
             return new ESnd(subst(e.getPair(), replacement, var));
+        } else if (expr instanceof ECons) {
+            ECons e = (ECons) expr;
+            return new ECons(subst(e.getHead(), replacement, var), subst(e.getTail(), replacement, var));
         } else {
             return expr;
         }

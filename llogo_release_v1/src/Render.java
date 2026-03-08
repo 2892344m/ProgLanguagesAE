@@ -26,8 +26,6 @@ public class Render {
     private class RenderWindow extends JPanel {
 
         private void renderInstructions(Graphics g) {
-            System.out.println(x);
-            System.out.println(y);
             for (Instruction i : instructions) {
                 if (i instanceof ISetPen) {
                     ISetPen penSet = (ISetPen) i;
@@ -44,9 +42,11 @@ public class Render {
                 } else if (i instanceof ITurn) {
                     ITurn turnAngle = (ITurn) i;
                     angle += turnAngle.getAmount();
+                    angle %= 360;
                 } else if (i instanceof IMove) {
                     IMove move = (IMove) i;
                     double radians = Math.toRadians(angle);
+                    System.out.println(radians);
                     if (penDown) {
                         int dx = (int) (x + (move.getAmount() * Math.sin(radians)));
                         dx = Math.clamp(dx, 0, WINDOW_WIDTH);
