@@ -61,8 +61,8 @@ public class Interp {
             VInt amount = (VInt) move.getValue();
 
             List<Instruction> l = new ArrayList<>();
-            l.add(new IMove(amount.getValue()));
             l.addAll(move.getInstructions());
+            l.add(new IMove(amount.getValue()));
 
             return new InterpResult(new VUnit(), l);
 
@@ -72,8 +72,8 @@ public class Interp {
             VInt amount = (VInt) move.getValue();
 
             List<Instruction> l = new ArrayList<>();
-            l.add(new IMove(-amount.getValue()));
             l.addAll(move.getInstructions());
+            l.add(new IMove(-amount.getValue()));
 
             return new InterpResult(new VUnit(), l);
 
@@ -83,8 +83,8 @@ public class Interp {
             VInt amount = (VInt) move.getValue();
 
             List<Instruction> l = new ArrayList<>();
-            l.add(new ITurn(amount.getValue()));
             l.addAll(move.getInstructions());
+            l.add(new ITurn(amount.getValue()));
 
             return new InterpResult(new VUnit(), l);
 
@@ -94,8 +94,8 @@ public class Interp {
             VInt amount = (VInt) move.getValue();
 
             List<Instruction> l = new ArrayList<>();
-            l.add(new ITurn(amount.getValue()));
             l.addAll(move.getInstructions());
+            l.add(new ITurn(-amount.getValue()));
 
             return new InterpResult(new VUnit(), l);
 
@@ -113,8 +113,8 @@ public class Interp {
             VColour colour = (VColour) res.getValue();
 
             List<Instruction> l = new ArrayList<>();
-            l.add(new IChangeColour(colour.getColour()));
             l.addAll(res.getInstructions());
+            l.add(new IChangeColour(colour.getColour()));
 
             return new InterpResult(new VUnit(), l);
 
@@ -134,8 +134,8 @@ public class Interp {
 
                 List<Instruction> l = new ArrayList<>();
                 VColour colour = (VColour) vl.getContents().get(k);
-                l.add(new IChangeColour(colour.getColour()));
                 l.addAll(res.getInstructions());
+                l.add(new IChangeColour(colour.getColour()));
 
                 return new InterpResult(new VUnit(), l);
             }
@@ -151,8 +151,8 @@ public class Interp {
             ESequence e = (ESequence) expr;
             InterpResult v = interpExpr(e.getE1());
             InterpResult res = interpExpr(e.getE2());
-            res.getInstructions().addAll(v.getInstructions());
-            return res;
+            v.getInstructions().addAll(res.getInstructions());
+            return new InterpResult(res.getValue(), v.getInstructions());
 
         } else if (expr instanceof EPair) {
             EPair e = (EPair) expr;
@@ -168,10 +168,9 @@ public class Interp {
             ECase e = (ECase) expr;
             InterpResult scrut = interpExpr(e.getScrutinee());
             VList l = (VList) scrut.getValue();
+            InterpResult res = null;
             if (l.toExpr() instanceof ENil) {
-                InterpResult empty = interpExpr(e.getEmptyCase());
-                empty.getInstructions().addAll(scrut.getInstructions());
-                return empty;
+                res = interpExpr(e.getEmptyCase());
             } else {
                 Expr consCase = e.getConsCase();
                 ECons oldCons = (ECons) l.toExpr();
@@ -180,17 +179,23 @@ public class Interp {
                     Expr substHead = Subst.subst(oldCons.getHead(), newCons.getHead(), e.getHeadBinder());
                     Expr substTail = Subst.subst(oldCons.getTail(), newCons.getTail(), e.getTailBinder());
                     ECons substCons = new ECons(substHead, substTail);
-                    return interpExpr(substCons);
+                    res = interpExpr(substCons);
                 } else if (consCase instanceof EVar) {
                     EVar v = (EVar) consCase;
                     if (v.getVar().equals(e.getHeadBinder())) {
-                        return interpExpr(oldCons.getHead());
+                        res = interpExpr(oldCons.getHead());
                     } else if (v.getVar().equals(e.getTailBinder())) {
-                        return interpExpr(oldCons.getTail());
+                        res = interpExpr(oldCons.getTail());
                     }
+                } else {
+                    return interpExpr(oldCons);
                 }
-                return interpExpr(oldCons);
             }
+            if (res == null) {
+                throw new TypeErrorException("Type Error: Unhandled expression in ECase (Interp): " + e.toString());
+            }
+            scrut.getInstructions().addAll(res.getInstructions());
+            return new InterpResult(res.getValue(), scrut.getInstructions());
         } else if (expr instanceof ENil) {
             return new InterpResult(new VList(new ArrayList<>()), new ArrayList<>());
 
@@ -227,8 +232,8 @@ public class Interp {
             InterpResult n = interpExpr(e.getTail());
             VList l = (VList) n.getValue();
             l.getContents().addFirst(m.getValue());
-            n.getInstructions().addAll(m.getInstructions());
-            return n;
+            m.getInstructions().addAll(n.getInstructions());
+            return new InterpResult(l, m.getInstructions());
         } else if (expr instanceof EApp) {
             EApp e = (EApp) expr;
             InterpResult ir = interpExpr(e.getFunction());
@@ -238,18 +243,18 @@ public class Interp {
                 InterpResult arg = interpExpr(e.getArgument());
                 Expr subst = Subst.subst(l.getBody(), arg.getValue().toExpr(), l.getParameter());
                 InterpResult res = interpExpr(subst);
-                res.getInstructions().addAll(arg.getInstructions());
-                res.getInstructions().addAll(ir.getInstructions());
-                return res;
+                ir.getInstructions().addAll(arg.getInstructions());
+                ir.getInstructions().addAll(res.getInstructions());
+                return new InterpResult(res.getValue(), ir.getInstructions());
             } else if (v1 instanceof VRec) {
                 VRec rec = (VRec) v1;
                 InterpResult arg = interpExpr(e.getArgument());
                 Expr subst = Subst.subst(rec.getBody(), arg.getValue().toExpr(), rec.getArgName());
                 Expr substRec = Subst.subst(subst, rec.toExpr(), rec.getFunName());
                 InterpResult res = interpExpr(substRec);
-                res.getInstructions().addAll(arg.getInstructions());
-                res.getInstructions().addAll(ir.getInstructions());
-                return res;
+                ir.getInstructions().addAll(arg.getInstructions());
+                ir.getInstructions().addAll(res.getInstructions());
+                return new InterpResult(res.getValue(), ir.getInstructions());
             } else {
                 throw new TypeErrorException("Type Error: Unhandled expression in EApp (interpExpr): " + e.toString());
             }
@@ -258,8 +263,8 @@ public class Interp {
             InterpResult M = interpExpr(e.getSubject());
             Expr cont = Subst.subst(e.getContinuation(), M.getValue().toExpr(), e.getBinder());
             InterpResult N = interpExpr(cont);
-            N.getInstructions().addAll(M.getInstructions());
-            return N;
+            M.getInstructions().addAll(N.getInstructions());
+            return new InterpResult(N.getValue(), M.getInstructions());
         } else if (expr instanceof EColour) {
             EColour e = (EColour) expr;
             return new InterpResult(new VColour(e.getColour()), new ArrayList<>());

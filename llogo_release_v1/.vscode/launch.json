@@ -11,7 +11,7 @@
             "mainClass": "Main",
             "projectName": "llogo_release_v1_a3508d83",
             "args": [
-                "examples/snowflake.tur"
+                "examples/case.tur"
             ]
         },
         {
@@ -20,7 +20,7 @@
             "request": "launch",
             "mainClass": "${file}",
             "args": [
-                "examples/snowflake.tur"
+                "examples/case.tur"
             ]
         }
     ]
